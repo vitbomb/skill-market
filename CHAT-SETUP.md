@@ -25,7 +25,7 @@ O `backend/server.js` ganhou rotas protegidas por JWT:
 - `PATCH /api/chat/conversas/:id/ler`
 - `GET /api/chat/nao-lidas`
 
-Depois do commit/push, faça o deploy no Render. Nenhuma variável de ambiente nova é necessária para o chat.
+Antes do commit/push, configure `CHAT_ENCRYPTION_KEY` no Render conforme `CHAT-CRIPTOGRAFIA.md`. O backend exige essa chave e converte automaticamente o histórico para AES-256-GCM antes de atender requisições.
 
 ## 3. Publicar o frontend
 

@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { pool, testarConexao } = require('./database');
+const { criarCriptografia, migrarMensagens } = require('./chat-crypto');
+const criptografiaChat = criarCriptografia();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -255,9 +257,14 @@ app.get('/api/chat/conversas', autenticarUsuario, async (req, res) => {
             [usuarioId]
         );
 
-        return res.json(resultado.rows);
+        return res.json(resultado.rows.map(conversa => ({
+            ...conversa,
+            ultima_mensagem: conversa.ultima_mensagem == null ? null : criptografiaChat.decifrar(
+                conversa.ultima_mensagem, conversa.id, conversa.ultima_mensagem_remetente_id
+            )
+        })));
     } catch (erro) {
-        console.error('Erro ao listar conversas:', erro);
+        console.error('Erro ao listar conversas.');
         return res.status(500).json({ erro: 'Não foi possível carregar suas conversas.' });
     }
 });
@@ -289,9 +296,12 @@ app.get('/api/chat/conversas/:id/mensagens', autenticarUsuario, async (req, res)
             [conversaId]
         );
 
-        return res.json(resultado.rows);
+        return res.json(resultado.rows.map(msg => ({
+            ...msg,
+            conteudo: criptografiaChat.decifrar(msg.conteudo, msg.conversa_id, msg.remetente_id)
+        })));
     } catch (erro) {
-        console.error('Erro ao carregar mensagens:', erro);
+        console.error('Erro ao carregar mensagens.');
         return res.status(500).json({ erro: 'Não foi possível carregar as mensagens.' });
     }
 });
@@ -328,18 +338,18 @@ app.post('/api/chat/conversas/:id/mensagens', autenticarUsuario, async (req, res
 
         await client.query('BEGIN');
         const inserida = await client.query(
-            `INSERT INTO mensagens (conversa_id, remetente_id, conteudo)
-             VALUES ($1, $2, $3)
+            `INSERT INTO mensagens (conversa_id, remetente_id, conteudo, criptografia)
+             VALUES ($1, $2, $3, 1)
              RETURNING id, conversa_id, remetente_id, conteudo, enviada_em, lida_em`,
-            [conversaId, usuarioId, conteudo]
+            [conversaId, usuarioId, criptografiaChat.cifrar(conteudo, conversaId, usuarioId)]
         );
         await client.query('UPDATE conversas SET atualizada_em = NOW() WHERE id = $1', [conversaId]);
         await client.query('COMMIT');
 
-        return res.status(201).json(inserida.rows[0]);
+        return res.status(201).json({ ...inserida.rows[0], conteudo });
     } catch (erro) {
         try { await client.query('ROLLBACK'); } catch (_) {}
-        console.error('Erro ao enviar mensagem:', erro);
+        console.error('Erro ao enviar mensagem.');
         return res.status(500).json({ erro: 'Não foi possível enviar a mensagem.' });
     } finally {
         client.release();
@@ -800,13 +810,22 @@ app.get('/api/perfil/:usuario_id', async (req, res) => {
 });
 
 // INICIALIZADOR DO SERVIDOR
-app.listen(PORT, '0.0.0.0', () => {
+async function iniciarServidor() {
+    await testarConexao();
+    await migrarMensagens(pool, criptografiaChat);
+    app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ Servidor rodando em 0.0.0.0:${PORT}`);
-    testarConexao().catch(() => {});
 
     if (process.env.BREVO_API_KEY && (process.env.EMAIL_FROM || process.env.EMAIL_USER)) {
         console.log('✓ Serviço de e-mails configurado pela API da Brevo.');
     } else {
         console.log('⚠ Serviço de e-mails incompleto: configure BREVO_API_KEY e EMAIL_FROM no Render.');
     }
+});
+}
+
+iniciarServidor().catch(() => {
+    console.error('Inicialização interrompida: confira a conexão, as tabelas do chat e CHAT_ENCRYPTION_KEY. O histórico não foi convertido parcialmente.');
+    process.exitCode = 1;
+    pool.end();
 });
