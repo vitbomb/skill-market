@@ -4199,6 +4199,60 @@ button:disabled,
     transform: none !important;
 }
 
+.diretrizes-shell {
+    width: min(1100px, calc(100% - 40px));
+    margin: 0 auto 56px;
+}
+
+.diretrizes-indice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 32px;
+}
+
+.diretrizes-indice a {
+    padding: 10px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--primary);
+}
+
+.diretrizes-section {
+    scroll-margin-top: 120px;
+    margin-bottom: 24px;
+    padding: clamp(20px, 4vw, 36px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+}
+
+.diretrizes-section h2 { margin: 8px 0 16px; }
+.diretrizes-section p { margin: 12px 0; }
+.diretrizes-section ul,
+.diretrizes-section ol { padding-left: 24px; }
+.diretrizes-section li { margin: 12px 0; }
+.diretrizes-section a { color: var(--primary); }
+
+.diretrizes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.diretrizes-grid article {
+    padding: 22px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-soft);
+}
+
+@media (max-width: 640px) {
+    .diretrizes-grid { grid-template-columns: 1fr; }
+}
+
 /* Fotos inteiras, com respiro para evitar cortes nas molduras arredondadas. */
 .imagem2-header,
 .avatar-card-resultado,
