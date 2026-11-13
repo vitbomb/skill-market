@@ -1,5 +1,10 @@
 const API_URL = 'https://skillmarket-api-7gpd.onrender.com/api';
 
+function headersAutenticacaoPerfil(permitirAdmin = false) {
+    const token = (permitirAdmin && localStorage.getItem('tokenAdmin')) || localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // --- CONFIGURAÇÃO DE CABEÇALHO DINÂMICO ---
 function configurarHeaderDinamico() {
     const token = localStorage.getItem('token');
@@ -24,7 +29,7 @@ function configurarHeaderDinamico() {
         if (menuPerfil) menuPerfil.style.display = 'block';
 
         if (usuarioId) {
-            fetch(`${API_URL}/perfil/${usuarioId}`)
+            fetch(`${API_URL}/perfil/${usuarioId}`, { headers: headersAutenticacaoPerfil() })
                 .then(res => res.json())
                 .then(prof => {
                     if (prof && prof.foto_perfil) {
@@ -301,7 +306,7 @@ if (cNome) {
         }
 
         try {
-            const resposta = await fetch(`${API_URL}/perfil/${usuarioId}`);
+            const resposta = await fetch(`${API_URL}/perfil/${usuarioId}`, { headers: headersAutenticacaoPerfil(true) });
             
             // VERIFICA SE QUEM ESTÁ ACESSANDO TEM TOKEN DE ADMIN
             const isAdmin = localStorage.getItem('tokenAdmin') !== null;
@@ -498,7 +503,7 @@ async function preencherFormularioPerfil() {
     if (!usuarioId) return;
 
     try {
-        const resposta = await fetch(`${API_URL}/perfil/${usuarioId}`);
+        const resposta = await fetch(`${API_URL}/perfil/${usuarioId}`, { headers: headersAutenticacaoPerfil() });
         if (!resposta.ok) return;
 
         const prof = await resposta.json();
@@ -797,9 +802,8 @@ if (formPerfil) {
         try {
             const resposta = await fetch(`${API_URL}/perfil`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...headersAutenticacaoPerfil() },
                 body: JSON.stringify({
-                    usuario_id: parseInt(usuarioId),
                     nome_completo: nomeCompleto,
                     area_atuacao: areaAtuacao,
                     localizacao: localizacao,

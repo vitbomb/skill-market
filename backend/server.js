@@ -10,7 +10,10 @@ const criptografiaChat = criarCriptografia();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'chave_seguranca_skillmarket';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || Buffer.byteLength(JWT_SECRET.trim(), 'utf8') < 32 || JWT_SECRET === 'chave_seguranca_skillmarket') {
+    throw new Error('Configure JWT_SECRET com um segredo aleatório de pelo menos 32 bytes.');
+}
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -88,7 +91,7 @@ function autenticarAdmin(req, res, next) {
     }
 
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
+        const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
         if (payload.role !== 'admin') {
             return res.status(403).json({ erro: 'Acesso administrativo não autorizado.' });
         }
@@ -142,8 +145,8 @@ function autenticarUsuario(req, res, next) {
     }
 
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
-        if (!payload.id) {
+        const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+        if (!Number.isSafeInteger(Number(payload.id)) || Number(payload.id) <= 0 || payload.role === 'admin') {
             return res.status(401).json({ erro: 'Sessão de usuário inválida.' });
         }
         req.usuario = { id: Number(payload.id), email: payload.email };
@@ -711,10 +714,11 @@ app.post('/api/intencao', async (req, res) => {
 });
 
 // 7. SALVAR PERFIL DO PROFISSIONAL (Vai para "pendente")
-app.post('/api/perfil', async (req, res) => {
+app.post('/api/perfil', autenticarUsuario, async (req, res) => {
     const {
-        usuario_id, nome_completo, area_atuacao, localizacao, sobre_voce, qualidades, telefone, instagram, email_contato, site, fotos, foto_perfil
+        nome_completo, area_atuacao, localizacao, sobre_voce, qualidades, telefone, instagram, email_contato, site, fotos, foto_perfil
     } = req.body;
+    const usuario_id = req.usuario.id;
 
     try {
         const queryUpsert = `
@@ -789,14 +793,26 @@ app.get('/api/perfis', async (req, res) => {
 // 10. BUSCAR UM ÚNICO PERFIL PELO ID DO USUÁRIO
 app.get('/api/perfil/:usuario_id', async (req, res) => {
     const { usuario_id } = req.params;
+    let podeVerNaoAprovado = false;
+    const authHeader = req.headers.authorization || '';
+    if (authHeader) {
+        try {
+            const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+            const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+            podeVerNaoAprovado = payload.role === 'admin' ||
+                (Number.isSafeInteger(Number(payload.id)) && Number(payload.id) > 0 && Number(payload.id) === Number(usuario_id));
+        } catch (_) {
+            return res.status(401).json({ erro: 'Sessão inválida ou expirada. Entre novamente.' });
+        }
+    }
 
     try {
         const resultado = await pool.query(
             `SELECT p.*, u.nome, u.email 
              FROM perfis p 
              JOIN usuarios u ON p.usuario_id = u.id 
-             WHERE p.usuario_id = $1`, 
-            [usuario_id]
+             WHERE p.usuario_id = $1 AND (p.status = 'aprovado' OR $2::boolean)`,
+            [usuario_id, podeVerNaoAprovado]
         );
 
         if (resultado.rows.length === 0) {

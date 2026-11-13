@@ -4,7 +4,7 @@
   "description": "",
   "main": "database.js",
   "scripts": {
-    "test": "node --test chat-crypto.test.js",
+    "test": "node --test chat-crypto.test.js profile-security.test.js",
     "start": "node server.js"
   },
   "keywords": [],
