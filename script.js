@@ -889,6 +889,13 @@ if (formVerificar) {
                 return;
             }
 
+            if (!dados.token || !dados.usuarioId) {
+                alert('E-mail validado. Entre na sua conta para continuar o cadastro.');
+                window.location.href = 'signin.html';
+                return;
+            }
+            localStorage.setItem('token', dados.token);
+            localStorage.setItem('usuarioId', dados.usuarioId);
             alert('E-mail validado com sucesso!');
             localStorage.removeItem('emailValidando');
             window.location.href = 'intencao.html';

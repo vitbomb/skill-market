@@ -584,9 +584,15 @@ app.post('/api/verificar-codigo', async (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const codigo = String(req.body.codigo || '').trim();
 
+    if (!email || !/^\d{6}$/.test(codigo)) {
+        return res.status(400).json({ erro: 'Informe o e-mail e o código de verificação de seis dígitos.' });
+    }
+
     try {
         const resultado = await pool.query(
-            'SELECT * FROM usuarios WHERE email = $1 AND codigo_verificacao = $2',
+            `UPDATE usuarios SET verificado = TRUE, codigo_verificacao = NULL
+             WHERE email = $1 AND codigo_verificacao = $2 AND verificado = FALSE
+             RETURNING id, email`,
             [email, codigo]
         );
 
@@ -594,12 +600,9 @@ app.post('/api/verificar-codigo', async (req, res) => {
             return res.status(400).json({ erro: 'Código de verificação inválido ou incorreto.' });
         }
 
-        await pool.query(
-            'UPDATE usuarios SET verificado = TRUE, codigo_verificacao = NULL WHERE email = $1',
-            [email]
-        );
-
-        res.json({ mensagem: 'E-mail validado com sucesso!' });
+        const usuario = resultado.rows[0];
+        const token = jwt.sign({ id: usuario.id, email: usuario.email }, JWT_SECRET, { expiresIn: '4h' });
+        res.json({ mensagem: 'E-mail validado com sucesso!', token, usuarioId: usuario.id });
     } catch (erro) {
         res.status(500).json({ erro: 'Erro ao processar validação.' });
     }

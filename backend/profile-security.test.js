@@ -9,6 +9,7 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     const routes = new Map();
     const queries = [];
     const senhasHash = [];
+    let emailVerificado = false;
     const app = { use() {}, listen() {} };
     for (const method of ['get', 'post', 'patch']) {
         app[method] = (path, ...handlers) => routes.set(`${method} ${path}`, handlers);
@@ -19,6 +20,12 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     const pool = {
         async query(sql, args) {
             queries.push({ sql, args });
+            if (sql.includes('RETURNING id, email')) {
+                assert.match(sql, /codigo_verificacao = \$2 AND verificado = FALSE/);
+                if (emailVerificado || args[1] !== '123456') return { rows: [] };
+                emailVerificado = true;
+                return { rows: [{ id: 7, email: args[0] }] };
+            }
             if (sql.includes('WHERE LOWER(email)')) return { rows: [{ id: 7, verificado: true }] };
             if (sql.includes('SELECT * FROM usuarios WHERE token_recuperacao')) return { rows: [{ id: 7 }] };
             if (sql.includes('INSERT INTO perfis')) return { rows: [{ id: 1 }] };
@@ -33,7 +40,12 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     const modules = {
         dotenv: { config() {} }, express, cors: () => () => {},
         bcryptjs: { hash: async senha => { senhasHash.push(senha); return 'hash-simulado'; } }, crypto,
-        jsonwebtoken: { verify(token, key, options) {
+        jsonwebtoken: { sign(payload, key, options) {
+            assert.equal(payload.id, 7);
+            assert.equal(key, secret);
+            assert.equal(options.expiresIn, '4h');
+            return 'dono';
+        }, verify(token, key, options) {
             assert.equal(key, secret);
             assert.deepEqual(Array.from(options.algorithms), ['HS256']);
             if (!tokens[token]) throw new Error('Token inválido');
@@ -127,3 +139,18 @@ for (const path of ['/api/signup', '/api/redefinir-senha']) {
         }
     });
 }
+
+test('verificação cria sessão para salvar o perfil e impede reutilizar o código', async () => {
+    const api = carregar();
+    for (const codigo of ['', 'abc', '000000']) {
+        const res = await api.request('post', '/api/verificar-codigo', undefined, { email: 'teste@example.com', codigo });
+        assert.equal(res.code, 400);
+        assert.equal(res.data.token, undefined);
+    }
+    const body = { email: 'teste@example.com', codigo: '123456' };
+    const res = await api.request('post', '/api/verificar-codigo', undefined, body);
+    assert.equal(res.code, 200);
+    assert.equal(res.data.usuarioId, 7);
+    assert.equal((await api.request('post', '/api/perfil', res.data.token)).code, 200);
+    assert.equal((await api.request('post', '/api/verificar-codigo', undefined, body)).code, 400);
+});
