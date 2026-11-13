@@ -8,6 +8,7 @@ const crypto = require('node:crypto');
 function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     const routes = new Map();
     const queries = [];
+    const senhasHash = [];
     const app = { use() {}, listen() {} };
     for (const method of ['get', 'post', 'patch']) {
         app[method] = (path, ...handlers) => routes.set(`${method} ${path}`, handlers);
@@ -18,6 +19,8 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     const pool = {
         async query(sql, args) {
             queries.push({ sql, args });
+            if (sql.includes('WHERE LOWER(email)')) return { rows: [{ id: 7, verificado: true }] };
+            if (sql.includes('SELECT * FROM usuarios WHERE token_recuperacao')) return { rows: [{ id: 7 }] };
             if (sql.includes('INSERT INTO perfis')) return { rows: [{ id: 1 }] };
             if (sql.includes('p.usuario_id = $1')) {
                 assert.match(sql, /p\.status = 'aprovado' OR \$2::boolean/);
@@ -28,7 +31,8 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
         end() {}
     };
     const modules = {
-        dotenv: { config() {} }, express, cors: () => () => {}, bcryptjs: {}, crypto,
+        dotenv: { config() {} }, express, cors: () => () => {},
+        bcryptjs: { hash: async senha => { senhasHash.push(senha); return 'hash-simulado'; } }, crypto,
         jsonwebtoken: { verify(token, key, options) {
             assert.equal(key, secret);
             assert.deepEqual(Array.from(options.algorithms), ['HS256']);
@@ -44,6 +48,7 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     });
     return {
         queries,
+        senhasHash,
         async request(method, path, token, body = {}, query = {}) {
             const req = { headers: token ? { authorization: `Bearer ${token}` } : {}, body, params: { usuario_id: '7' }, query };
             const res = { code: 200, status(code) { this.code = code; return this; }, json(data) { this.data = data; return this; } };
@@ -101,3 +106,24 @@ test('listagem pública mantém filtro de aprovação, inclusive com busca', asy
     assert.match(api.queries[1].sql, /WHERE p\.status = 'aprovado'/);
     assert.equal(api.queries[1].args[0], '%eletricista%');
 });
+
+for (const path of ['/api/signup', '/api/redefinir-senha']) {
+    const body = senha => ({ nome: 'Teste', email: 'teste@example.com', senha, novaSenha: senha, token: 'recuperacao' });
+    test(`${path} bloqueia senhas curtas antes de consultar ou alterar o banco`, async () => {
+        const api = carregar();
+        for (const senha of ['', 'a'.repeat(14), '😀'.repeat(14), undefined, 123456789012345]) {
+            assert.equal((await api.request('post', path, undefined, body(senha))).code, 400);
+        }
+        assert.equal(api.queries.length, 0);
+        assert.equal(api.senhasHash.length, 0);
+    });
+    test(`${path} aceita 15 caracteres sem exigir composição e preserva espaços`, async () => {
+        const api = carregar();
+        for (const senha of ['a'.repeat(15), '1'.repeat(15), '😀'.repeat(15), 'uma frase bem longa', '  uma frase longa  ']) {
+            const res = await api.request('post', path, undefined, body(senha));
+            // No cadastro, a conta simulada já existe. A política passou antes do 409.
+            assert.equal(res.code, path === '/api/signup' ? 409 : 200);
+            assert.equal(api.senhasHash.at(-1), senha);
+        }
+    });
+}

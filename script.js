@@ -599,8 +599,8 @@ if (formCadastro) {
             return;
         }
 
-        if (senha.length < 6) {
-            mensagemErroCadastro.textContent = 'A senha precisa de pelo menos 6 caracteres.';
+        if (Array.from(senha).length < 15) {
+            mensagemErroCadastro.textContent = 'A senha precisa de pelo menos 15 caracteres.';
             return;
         }
 
@@ -978,6 +978,11 @@ if (formRedefinir) {
         e.preventDefault();
         const novaSenha = document.getElementById('novaSenha').value;
         const confirmarNovaSenha = document.getElementById('confirmarNovaSenha').value;
+
+        if (Array.from(novaSenha).length < 15) {
+            msgErroRedefinir.textContent = 'A senha precisa de pelo menos 15 caracteres.';
+            return;
+        }
 
         if (novaSenha !== confirmarNovaSenha) {
             msgErroRedefinir.textContent = 'As senhas não coincidem.';

@@ -443,14 +443,14 @@ async function enviarCodigoVerificacao(nome, email, codigoOTP) {
 app.post('/api/signup', async (req, res) => {
     const nome = String(req.body.nome || '').trim();
     const email = String(req.body.email || '').trim().toLowerCase();
-    const senha = String(req.body.senha || '');
+    const senha = typeof req.body.senha === 'string' ? req.body.senha : '';
 
     if (!nome || !email || !senha) {
         return res.status(400).json({ erro: 'Por favor, preencha todos os campos.' });
     }
 
-    if (senha.length < 6) {
-        return res.status(400).json({ erro: 'A senha precisa de pelo menos 6 caracteres.' });
+    if (Array.from(senha).length < 15) {
+        return res.status(400).json({ erro: 'A senha precisa de pelo menos 15 caracteres.' });
     }
 
     try {
@@ -681,6 +681,10 @@ app.post('/api/esqueci-senha', async (req, res) => {
 // 5. ATUALIZAR NOVA SENHA
 app.post('/api/redefinir-senha', async (req, res) => {
     const { token, novaSenha } = req.body;
+
+    if (typeof novaSenha !== 'string' || Array.from(novaSenha).length < 15) {
+        return res.status(400).json({ erro: 'A senha precisa de pelo menos 15 caracteres.' });
+    }
 
     try {
         const resultado = await pool.query('SELECT * FROM usuarios WHERE token_recuperacao = $1', [token]);
