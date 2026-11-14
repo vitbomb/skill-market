@@ -1666,6 +1666,11 @@ header {
     box-shadow: var(--shadow-sm);
 }
 
+.perfil-container-flex.perfil-apenas-contratar {
+    grid-template-columns: minmax(0, 480px);
+    justify-content: center;
+}
+
 .avatar-perfil-c {
     width: 104px;
     height: 104px;

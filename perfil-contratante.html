@@ -36,7 +36,7 @@
                 <img src="imagens/placeholder-usuario.png" alt="Foto do perfil" class="imagem2-header" tabindex="0">
                 <div class="submenu-perfil">
                     <a href="perfil.html" id="linkMeuPerfilMenu">Meu perfil</a>
-                    <a href="perfil-profissional.html">Editar perfil</a>
+                    <a href="perfil-contratante.html">Editar perfil</a>
                     <a href="#" id="btnSair">Sair da conta</a>
                 </div>
             </div>
@@ -44,7 +44,7 @@
     </div>
 </header>
 <main class="container-perfilP">
-    <form id="formPerfil" class="card-cadastro card-perfil">
+    <form id="formPerfil" data-tipo="contratante" class="card-cadastro card-perfil">
         <div class="profile-form-head"><div><span class="section-kicker">Seu perfil</span><h1>Complete seu perfil</h1><p>Adicione informações básicas para tornar sua experiência no Skill Market mais completa.</p></div></div>
         <section class="form-section">
             <div class="form-section-title"><h2>Foto e apresentação</h2><p>Uma apresentação objetiva ajuda outras pessoas a entenderem rapidamente quem você é.</p></div>
@@ -57,21 +57,10 @@
             <div class="form-section-title"><h2>Informações principais</h2><p>Esses dados ajudam a organizar e identificar seu perfil na plataforma.</p></div>
             <div class="profile-form-grid">
                 <div class="campo"><label for="nomeCompleto">Nome completo</label><input type="text" id="nomeCompleto" placeholder="Como você quer ser identificado"></div>
-                <div class="campo"><label for="areaAtuacao">Área de atuação / cargo</label><input type="text" id="areaAtuacao" placeholder="Ex.: Designer, Desenvolvedor, Social Media"></div>
                 <div class="campo"><label for="localizacao">Localização</label><input type="text" id="localizacao" placeholder="Ex.: Toledo, PR"></div>
-                <div class="campo full"><label for="sobreVoce">Sobre você</label><textarea id="sobreVoce" rows="5" placeholder="Apresente sua experiência, seu estilo de trabalho e o tipo de projeto que procura."></textarea></div>
-                <div class="campo full"><label>Habilidades e qualidades</label><span class="field-help">Use palavras curtas que facilitem a busca pelo seu perfil.</span><div class="qualidades-container" id="qualidadesContainer"><input type="text" class="input-qualidade" placeholder="Ex.: Figma"><input type="text" class="input-qualidade" placeholder="Ex.: JavaScript"><input type="text" class="input-qualidade" placeholder="Ex.: Comunicação"><button type="button" id="btnAddQualidade" class="btn-add-circular" aria-label="Adicionar habilidade">+</button></div></div>
             </div>
         </section>
-        <section class="form-section">
-            <div class="form-section-title"><h2>Contato</h2><p>Informe os canais pelos quais outras pessoas poderão conversar com você.</p></div>
-            <div class="profile-form-grid">
-                <div class="campo"><label for="telefone">Telefone / WhatsApp</label><input type="text" id="telefone" placeholder="(45) 99999-9999"></div>
-                <div class="campo"><label for="instagram">Instagram</label><input type="text" id="instagram" placeholder="@usuario"></div>
-                <div class="campo"><label for="emailContato">E-mail para contato</label><input type="email" id="emailContato" placeholder="contato@exemplo.com"></div>
-                <div class="campo"><label for="site">Site pessoal / portfólio</label><input type="text" id="site" placeholder="https://seusite.com"></div>
-            </div>
-        </section>
+
         
         <div class="botoes-perfilP"><button type="submit" id="btnSalvarPerfil">Salvar perfil</button></div>
     </form>

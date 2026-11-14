@@ -722,12 +722,16 @@ app.post('/api/intencao', async (req, res) => {
 
 // 7. SALVAR PERFIL DO PROFISSIONAL (Vai para "pendente")
 app.post('/api/perfil', autenticarUsuario, async (req, res) => {
-    const {
+    let {
         nome_completo, area_atuacao, localizacao, sobre_voce, qualidades, telefone, instagram, email_contato, site, fotos, foto_perfil
     } = req.body;
     const usuario_id = req.usuario.id;
 
     try {
+        const conta = await pool.query('SELECT intencao FROM usuarios WHERE id = $1', [usuario_id]);
+        if (conta.rows[0]?.intencao === 'Apenas contratar') {
+            area_atuacao = sobre_voce = qualidades = telefone = instagram = email_contato = site = fotos = '';
+        }
         const queryUpsert = `
             INSERT INTO perfis (
                 usuario_id, nome_completo, area_atuacao, localizacao, sobre_voce, qualidades, telefone, instagram, email_contato, site, fotos, foto_perfil, status
@@ -778,10 +782,11 @@ app.get('/api/perfis', async (req, res) => {
 
     try {
         let query = `
-            SELECT p.*, u.nome, u.email 
+            SELECT p.*, u.nome, u.email, u.intencao
             FROM perfis p 
             JOIN usuarios u ON p.usuario_id = u.id
             WHERE p.status = 'aprovado'
+              AND u.intencao IS DISTINCT FROM 'Apenas contratar'
         `;
         let valores = [];
 
@@ -815,7 +820,7 @@ app.get('/api/perfil/:usuario_id', async (req, res) => {
 
     try {
         const resultado = await pool.query(
-            `SELECT p.*, u.nome, u.email 
+            `SELECT p.*, u.nome, u.email, u.intencao
              FROM perfis p 
              JOIN usuarios u ON p.usuario_id = u.id 
              WHERE p.usuario_id = $1 AND (p.status = 'aprovado' OR $2::boolean)`,

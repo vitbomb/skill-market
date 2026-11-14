@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 
 // Executa as rotas reais sem abrir portas ou acessar o banco de produção.
-function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
+function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente', intencao = 'Contratar e oferecer') {
     const routes = new Map();
     const queries = [];
     const senhasHash = [];
@@ -20,6 +20,7 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente') {
     const pool = {
         async query(sql, args) {
             queries.push({ sql, args });
+            if (sql === 'SELECT intencao FROM usuarios WHERE id = $1') return { rows: [{ intencao }] };
             if (sql.includes('RETURNING id, email')) {
                 assert.match(sql, /codigo_verificacao = \$2 AND verificado = FALSE/);
                 if (emailVerificado || args[1] !== '123456') return { rows: [] };
@@ -89,7 +90,7 @@ test('gravação exige usuário autenticado e ignora ID e status enviados no cor
     assert.equal(api.queries.length, 0);
     assert.equal((await api.request('post', '/api/perfil', 'dono', { usuario_id: 8, status: 'aprovado' })).code, 200);
     assert.equal(api.queries[0].args[0], 7);
-    assert.match(api.queries[0].sql, /status = 'pendente'/);
+    assert.match(api.queries.find(q => q.sql.includes('INSERT INTO perfis')).sql, /status = 'pendente'/);
 });
 
 for (const status of ['pendente', 'rejeitado']) test(`perfil ${status} só pode ser lido pelo dono ou administrador`, async () => {
@@ -114,9 +115,25 @@ test('listagem pública mantém filtro de aprovação, inclusive com busca', asy
     const api = carregar();
     await api.request('get', '/api/perfis');
     assert.match(api.queries[0].sql, /WHERE p\.status = 'aprovado'/);
+    assert.match(api.queries[0].sql, /u\.intencao IS DISTINCT FROM 'Apenas contratar'/);
     await api.request('get', '/api/perfis', undefined, {}, { busca: 'eletricista' });
     assert.match(api.queries[1].sql, /WHERE p\.status = 'aprovado'/);
     assert.equal(api.queries[1].args[0], '%eletricista%');
+});
+
+test('contratante salva somente foto, nome e localização, descartando campos profissionais', async () => {
+    const api = carregar('ab'.repeat(32), 'pendente', 'Apenas contratar');
+    const res = await api.request('post', '/api/perfil', 'dono', {
+        nome_completo: 'Cliente', localizacao: 'Toledo', foto_perfil: 'foto',
+        area_atuacao: 'Cargo', sobre_voce: 'Bio', qualidades: 'Habilidade', telefone: '123',
+        instagram: '@teste', email_contato: 'teste@example.com', site: 'site', fotos: 'portfolio'
+    });
+    assert.equal(res.code, 200);
+    const valores = api.queries.find(q => q.sql.includes('INSERT INTO perfis')).args;
+    assert.equal(valores[1], 'Cliente');
+    assert.equal(valores[3], 'Toledo');
+    assert.equal(valores[11], 'foto');
+    for (const i of [2, 4, 5, 6, 7, 8, 9, 10]) assert.equal(valores[i], '');
 });
 
 for (const path of ['/api/signup', '/api/redefinir-senha']) {

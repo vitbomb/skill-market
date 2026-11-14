@@ -5,6 +5,12 @@ function headersAutenticacaoPerfil(permitirAdmin = false) {
     return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function atualizarLinksEdicaoPerfil(perfil, proprioPerfil) {
+    if (!proprioPerfil || !perfil || !perfil.intencao) return;
+    const destino = perfil.intencao === 'Apenas contratar' ? 'perfil-contratante.html' : 'perfil-profissional.html';
+    document.querySelectorAll('.submenu-perfil a[href="perfil-profissional.html"], .submenu-perfil a[href="perfil-contratante.html"]').forEach(link => { link.href = destino; });
+}
+
 // --- CONFIGURAÇÃO DE CABEÇALHO DINÂMICO ---
 function configurarHeaderDinamico() {
     const token = localStorage.getItem('token');
@@ -32,6 +38,7 @@ function configurarHeaderDinamico() {
             fetch(`${API_URL}/perfil/${usuarioId}`, { headers: headersAutenticacaoPerfil() })
                 .then(res => res.json())
                 .then(prof => {
+                    atualizarLinksEdicaoPerfil(prof, true);
                     if (prof && prof.foto_perfil) {
                         document.querySelectorAll('.imagem2-header').forEach(img => {
                             img.src = prof.foto_perfil;
@@ -325,6 +332,19 @@ if (cNome) {
 
             const prof = await resposta.json();
 
+            const apenasContratar = prof.intencao === 'Apenas contratar';
+            if (apenasContratar) {
+                document.title = 'Perfil | Skill Market';
+                document.querySelector('.profile-page-intro').textContent = 'Perfil';
+                document.querySelector('.card-profissional-completo').setAttribute('aria-label', 'Informações do perfil');
+                document.getElementById('cAvatar').alt = 'Foto do perfil';
+                document.querySelector('.perfil-container-flex').classList.add('perfil-apenas-contratar');
+                ['#cEmpresa', '#cBio', '#cQualidades', '.contatos-icones', '.avaliacao-caixa', '.portfolio-panel'].forEach(seletor => {
+                    document.querySelector(seletor).style.display = 'none';
+                });
+            }
+            atualizarLinksEdicaoPerfil(prof, isDonoDoPerfil);
+
             // LÓGICA DE BLOQUEIO ATUALIZADA (Permite o Admin acessar)
             if (prof.status === 'pendente' && isDonoDoPerfil) {
                 alert("Atenção: Seu perfil está em análise pelos administradores. Ele só aparecerá nas buscas após ser aprovado.");
@@ -401,7 +421,7 @@ if (cNome) {
                 }
             }
 
-            configurarBotaoChatPerfil(usuarioId, isDonoDoPerfil);
+            if (!apenasContratar) configurarBotaoChatPerfil(usuarioId, isDonoDoPerfil);
             configurarBotoesAvaliacao(usuarioId);
 
         } catch (erro) {
@@ -507,6 +527,11 @@ async function preencherFormularioPerfil() {
         if (!resposta.ok) return;
 
         const prof = await resposta.json();
+
+        if (prof.intencao === 'Apenas contratar' && formPerfil.dataset.tipo !== 'contratante') {
+            window.location.href = 'perfil-contratante.html';
+            return;
+        }
 
         if (document.getElementById('nomeCompleto')) document.getElementById('nomeCompleto').value = prof.nome_completo || '';
         if (document.getElementById('areaAtuacao')) document.getElementById('areaAtuacao').value = prof.area_atuacao || '';
@@ -767,13 +792,13 @@ if (formPerfil) {
         }
 
         const nomeCompleto = document.getElementById('nomeCompleto').value.trim();
-        const areaAtuacao = document.getElementById('areaAtuacao').value.trim();
+        const areaAtuacao = (document.getElementById('areaAtuacao')?.value || '').trim();
         const localizacao = document.getElementById('localizacao').value.trim();
-        const sobreVoce = document.getElementById('sobreVoce').value.trim();
-        const telefone = document.getElementById('telefone').value.trim();
-        const instagram = document.getElementById('instagram').value.trim();
-        const emailContato = document.getElementById('emailContato').value.trim();
-        const site = document.getElementById('site').value.trim();
+        const sobreVoce = (document.getElementById('sobreVoce')?.value || '').trim();
+        const telefone = (document.getElementById('telefone')?.value || '').trim();
+        const instagram = (document.getElementById('instagram')?.value || '').trim();
+        const emailContato = (document.getElementById('emailContato')?.value || '').trim();
+        const site = (document.getElementById('site')?.value || '').trim();
 
         const previewAvatar = document.getElementById('previewAvatar');
         let fotoPerfilBase64 = null;
