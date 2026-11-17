@@ -19,7 +19,6 @@ function carregar(secret = 'ab'.repeat(32), statusPerfil = 'pendente', intencao 
     const tokens = { dono: { id: 7 }, outro: { id: 8 }, admin: { role: 'admin' }, semId: {}, idInvalido: { id: 'abc' } };
     const pool = {
         async query(sql, args) {
-            if (sql.includes('ALTER TABLE usuarios')) return { rows: [] };
             queries.push({ sql, args });
             if (sql === 'SELECT intencao FROM usuarios WHERE id = $1') return { rows: [{ intencao }] };
             if (sql.includes('RETURNING id, email')) {

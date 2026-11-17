@@ -8,7 +8,7 @@ Esta versão reorganiza o front-end para uma linguagem visual mais próxima de u
 - Cabeçalho totalmente refeito e responsivo, com navegação em português.
 - Home reconstruída com hero, busca principal, categorias, profissionais dinâmicos, seção “Como funciona” e CTA.
 - Busca reorganizada com sugestões/filtros laterais e cards de resultado mais informativos.
-- Perfil público refeito com hierarquia de informação, contatos, habilidades, avaliação e portfólio.
+- Perfil público refeito com hierarquia de informação, contatos, habilidades e portfólio.
 - Formulários de perfil reorganizados em seções claras e responsivas.
 - Login, cadastro, verificação e recuperação de senha unificados em um único padrão visual.
 - Página “Sobre” refeita com apresentação do projeto e equipe.

@@ -1757,40 +1757,6 @@ header {
     background: #fafbff;
 }
 
-.avaliacao-caixa {
-    margin-top: 22px;
-    padding-top: 19px;
-    border-top: 1px solid #eef0f5;
-}
-
-.avaliacao-caixa strong {
-    display: block;
-    margin-bottom: 10px;
-    font-size: .8rem;
-}
-
-.botoes-avaliacao {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-aval {
-    flex: 1;
-    min-height: 40px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: #475467;
-    background: #f9fafb;
-    cursor: pointer;
-    font-weight: 700;
-}
-
-.btn-aval:hover {
-    border-color: #cbd5ff;
-    background: var(--primary-soft);
-    color: var(--primary);
-}
-
 .portfolio-panel {
     min-width: 0;
     padding: 26px;
@@ -2871,7 +2837,6 @@ html[data-theme='dark'] .passo:hover {
 html[data-theme='dark'] #containerProfissionais .frontofcard,
 html[data-theme='dark'] .form-section,
 html[data-theme='dark'] .bio-caixa,
-html[data-theme='dark'] .avaliacao-caixa,
 html[data-theme='dark'] .sidebar-group + .sidebar-group {
     border-color: #253148;
 }
@@ -3013,12 +2978,6 @@ html[data-theme='dark'] .contato-item {
 
 html[data-theme='dark'] .contato-item:hover {
     background: #151f32;
-}
-
-html[data-theme='dark'] .btn-aval {
-    color: #bac4d4;
-    background: #151e30;
-    border-color: #2a374c;
 }
 
 html[data-theme='dark'] .portfolio-img-c {

@@ -339,7 +339,7 @@ if (cNome) {
                 document.querySelector('.card-profissional-completo').setAttribute('aria-label', 'Informações do perfil');
                 document.getElementById('cAvatar').alt = 'Foto do perfil';
                 document.querySelector('.perfil-container-flex').classList.add('perfil-apenas-contratar');
-                ['#cEmpresa', '#cBio', '#cQualidades', '.contatos-icones', '.avaliacao-caixa', '.portfolio-panel'].forEach(seletor => {
+                ['#cEmpresa', '#cBio', '#cQualidades', '.contatos-icones', '.portfolio-panel'].forEach(seletor => {
                     document.querySelector(seletor).style.display = 'none';
                 });
             }
@@ -394,9 +394,6 @@ if (cNome) {
                 }
             }
 
-            document.getElementById('numLikes').textContent = prof.likes || 0;
-            document.getElementById('numDislikes').textContent = prof.dislikes || 0;
-
             const cPortfolio = document.getElementById('cPortfolio');
             cPortfolio.innerHTML = '';
             if (prof.fotos && prof.fotos.trim() !== '') {
@@ -422,7 +419,6 @@ if (cNome) {
             }
 
             if (!apenasContratar) configurarBotaoChatPerfil(usuarioId, isDonoDoPerfil);
-            configurarBotoesAvaliacao(usuarioId);
 
         } catch (erro) {
             console.error(erro);
@@ -483,33 +479,6 @@ if (cNome) {
                 botao.innerHTML = textoOriginal;
             }
         };
-    }
-
-    function configurarBotoesAvaliacao(usuarioId) {
-        const btnLike = document.getElementById('btnLike');
-        const btnDislike = document.getElementById('btnDislike');
-
-        if (btnLike && btnDislike) {
-            btnLike.addEventListener('click', () => votar(usuarioId, 'like'));
-            btnDislike.addEventListener('click', () => votar(usuarioId, 'dislike'));
-        }
-    }
-
-    async function votar(usuarioId, tipo) {
-        try {
-            const resposta = await fetch(`${API_URL}/perfil/${usuarioId}/avaliar`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tipo })
-            });
-            const dados = await resposta.json();
-            if (resposta.ok) {
-                document.getElementById('numLikes').textContent = dados.likes;
-                document.getElementById('numDislikes').textContent = dados.dislikes;
-            }
-        } catch (erro) {
-            console.error(erro);
-        }
     }
 
     carregarPerfilCompleto();
