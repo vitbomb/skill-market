@@ -795,6 +795,10 @@ app.get('/api/perfis', async (req, res) => {
             valores.push(`%${busca}%`);
         }
 
+        // Contas antigas sem data registrada vêm primeiro, na sequência do ID.
+        // O ID também desempata cadastros com a mesma data e hora.
+        query += ` ORDER BY u.cadastrado_em ASC NULLS FIRST, u.id ASC`;
+
         const resultado = await pool.query(query, valores);
         res.json(resultado.rows);
     } catch (erro) {
@@ -840,6 +844,12 @@ app.get('/api/perfil/:usuario_id', async (req, res) => {
 // INICIALIZADOR DO SERVIDOR
 async function iniciarServidor() {
     await testarConexao();
+    // Não atribui a data de hoje aos usuários que já estavam cadastrados.
+    // O valor padrão passa a valer somente para os próximos cadastros.
+    await pool.query(`
+        ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cadastrado_em TIMESTAMPTZ;
+        ALTER TABLE usuarios ALTER COLUMN cadastrado_em SET DEFAULT CURRENT_TIMESTAMP;
+    `);
     await migrarMensagens(pool, criptografiaChat);
     app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ Servidor rodando em 0.0.0.0:${PORT}`);
@@ -853,7 +863,7 @@ async function iniciarServidor() {
 }
 
 iniciarServidor().catch(() => {
-    console.error('Inicialização interrompida: confira a conexão, as tabelas do chat e CHAT_ENCRYPTION_KEY. O histórico não foi convertido parcialmente.');
+    console.error('Inicialização interrompida: confira a conexão, a tabela usuarios, as tabelas do chat e CHAT_ENCRYPTION_KEY. O histórico não foi convertido parcialmente.');
     process.exitCode = 1;
     pool.end();
 });
